@@ -56,20 +56,23 @@ class HelloWorld(BaseSample):
     def __init__(self) -> None:
         super().__init__()
         self.ros_node = FrankaEffortPublisher()
+
         return
 
     def setup_scene(self):
+        print("hello1")
         world = self.get_world()
         world.scene.add_default_ground_plane()
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.026])))
-        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0])))
+        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0162])))
         #cube = world.scene.add(DynamicCuboid(prim_path= "/World/Cube", name= "fancy_cube", position=np.array([0.0, 0.6, 0.0]), scale= np.array([0.4, 0.4, 0.4]) ))
         print("adding L object")
         L_obj_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/L_object.usd"
         L_obj_prim_path = "/World/L_Object"
         add_reference_to_stage(L_obj_usd_path, L_obj_prim_path)
         print("added L object")
-
+        
         #self.camera_floating = Camera(prim_path="/World/floating_camera",
         #    position=np.array([0.6267249122010365, -1.0899894150435772, 0.81929329203460317634038678793]),
         #    frequency=20, resolution=(256, 256),
@@ -83,6 +86,7 @@ class HelloWorld(BaseSample):
 
         self.camera_floating.initialize()
         self.camera_wrist.initialize()
+        print("hello 2")
 
         """
         in: pose
@@ -96,6 +100,7 @@ class HelloWorld(BaseSample):
         #self._create_action_graph_obj()
 
         self.stage = omni.usd.get_context().get_stage()
+        print("hello3")
 
         self.left_finger_prim = self.stage.GetPrimAtPath("/World/Fancy_Franka/panda_leftfinger")
         self.right_finger_prim = self.stage.GetPrimAtPath("/World/Fancy_Franka/panda_rightfinger")
@@ -104,13 +109,23 @@ class HelloWorld(BaseSample):
         # L_obj_scale = L_obj.GetAttribute('xformOp:scale')
         # L_obj_scale.Set((100.0, 100.0, 100.0))
 
+        # L_obj_xform = UsdGeom.Xformable(L_obj)
+        # L_obj_xform.AddTranslateOp().Set((0.35, 0.1, 0.0))
+        # L_obj_xform.AddScaleOp().Set((0.25, 0.25, 0.25))
+
         L_obj_xform = UsdGeom.Xformable(L_obj)
-        L_obj_xform.AddTranslateOp().Set((0.35, 0.1, 0.0))
-        L_obj_xform.AddScaleOp().Set((0.25, 0.25, 0.25))
+        L_obj_xform.AddTranslateOp().Set((0.39365, -0.07614, -0.00002))
+        #L_obj_xform.AddTranslateOp().Set((0.39418, -0.07999, 0))
+        L_obj_xform.AddScaleOp().Set((0.1, 0.1, 0.1))
+        L_obj_xform.AddRotateXOp().Set(-0.11)   
+        L_obj_xform.AddRotateYOp().Set(-0.011)  
+        L_obj_xform.AddRotateZOp().Set(90.0)   
+
+        print("hello4")
 
         L_obj_mass_api = UsdPhysics.MassAPI.Apply(L_obj)
         L_obj_mass_api.CreateMassAttr(0.341)
-
+        print("hello5")
         return
 
     async def setup_post_load(self):
@@ -138,7 +153,7 @@ class HelloWorld(BaseSample):
         return
 
     def physics_step(self, step_size):
-
+        print("inside physics step")
         self.get_observations()
 
         # self.publish_rgb(self.camera_floating, freq=20)
@@ -149,6 +164,7 @@ class HelloWorld(BaseSample):
         return
 
     def get_observations(self):
+        print("i am inside observations")
         world = self.get_world()
         franka = world.scene.get_object("fancy_franka")
         articulation_view = franka._articulation_view
@@ -178,8 +194,8 @@ class HelloWorld(BaseSample):
         joint_names = franka._articulation_view.joint_names
 
         # Find the array indices for the two joints you want
-        idx_sensor_joint = joint_names.index("panda_link_sensor")  # between link 7 & sensor
-        idx_fixed_joint  = joint_names.index("FixedJoint")  
+        idx_sensor_joint = joint_names.index("link7_to_sensor")  # between link 7 & sensor
+        idx_fixed_joint  = joint_names.index("sensor_to_hand")  
 
         print(f"index for joint link7 and sensor {idx_sensor_joint}")
         print(f"index for sensor and hand {idx_fixed_joint}")
@@ -286,7 +302,7 @@ class HelloWorld(BaseSample):
         msg_EE_pose.pose.orientation.w = float(EE_orient[3])
 
         self.ros_node.EE_pose_publisher_.publish(msg_EE_pose)     
-        #print("Published effort for joint 4 (end effector).")
+        print("Published effort for joint 4 (end effector).")
         return
 
     def _create_action_graph_franka(self):
@@ -319,7 +335,9 @@ class HelloWorld(BaseSample):
                     # Providing the robot path is equivalent to setting the targetPrim in Articulation Controller node
                     # ("ArticulationController.inputs:usePath", True),      # if you are using an older version of Isaac Sim, you may need to uncomment this line
                     ("ArticulationController.inputs:robotPath", "/World/Fancy_Franka"),
-                    ("PublishJointState.inputs:targetPrim", "/World/Fancy_Franka")
+                    ("PublishJointState.inputs:targetPrim", "/World/Fancy_Franka"),
+                    ("SubscribeJointState.inputs:topicName", "/panda_teleop/joint_states_real"),
+                    #("SubscribeJointState.inputs:topicName", "/joint_command"),
                 ],
             },
         )
@@ -372,6 +390,7 @@ class HelloWorld(BaseSample):
     ####################################### publishing RGB values from both cameras #######################################
 
     def publish_rgb(self, camera: Camera, freq):
+        print("i am inside publish_rgb")
         # The following code will link the camera's render product and publish the data to the specified topic name.
         render_product = camera._render_product_path
         step_size = int(60/freq)
@@ -402,6 +421,7 @@ class HelloWorld(BaseSample):
     ####################################### publishing DEPTH values from both cameras #######################################
 
     def publish_depth(self, camera: Camera, freq):
+        print("i am inside publish_depth")
         # The following code will link the camera's render product and publish the data to the specified topic name.
         render_product = camera._render_product_path
         step_size = int(60/freq)

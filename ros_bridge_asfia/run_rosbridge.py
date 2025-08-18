@@ -7,15 +7,18 @@ import roslibpy
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import WrenchStamped
+from sensor_msgs.msg import JointState
 
 
 
 class Ros1ToRos2PoseBridge(Node):
     def __init__(self,
-                 ros1_host='192.168.3.98',
+                 ros1_host='192.168.3.31',
                  ros1_port=9090,
                  ros1_pose_topic='/icg_tracker_1/pose',
                  ros2_pose_topic='/icg_tracker_2',
+                 ros1_states_topic = '/panda_teleop/joint_states_rectified',
+                 ros2_states_topic = '/panda_teleop/joint_states_real',
                  ros1_wrench_topic='/bus0/ft_sensor0/ft_sensor_readings/wrench',
                  ros2_wrench_topic='/franka_effort_real'):
         super().__init__('ros1_to_ros2_pose_bridge')
@@ -23,9 +26,11 @@ class Ros1ToRos2PoseBridge(Node):
         # ROS 2 publishers
         #self.pose_publisher_ = self.create_publisher(PoseStamped, ros2_pose_topic, 10)
         self.wrench_publisher_ = self.create_publisher(WrenchStamped, ros2_wrench_topic, 10)
+        self.states_publisher = self.create_publisher(JointState, ros2_states_topic, 10)
 
         #self.get_logger().info(f'Publishing Pose to ROS 2 POSE topic: {ros2_pose_topic}')
         self.get_logger().info(f'Publishing Wrench to ROS 2 WRENCH topic: {ros2_wrench_topic}')
+        self.get_logger().info(f'Publishing States to ROS 2 STATES topic: {ros2_states_topic}')
 
         # Connect to ROS 1
         self.ros1 = roslibpy.Ros(host=ros1_host, port=ros1_port)
@@ -39,8 +44,14 @@ class Ros1ToRos2PoseBridge(Node):
         self.ros1_wrench_listener = roslibpy.Topic(self.ros1, ros1_wrench_topic, 'geometry_msgs/WrenchStamped')
         self.ros1_wrench_listener.subscribe(self.ros1_wrench_callback)
 
+        self.ros1_states_listener = roslibpy.Topic(self.ros1, ros1_states_topic, 'sensor_msgs/JointState')
+        self.ros1_states_listener.subscribe(self.ros1_states_callback)
+        #self.ros1_states_listener.subscribe(self.ros1_states_callback_2)
+
         #self.get_logger().info(f'Subscribed to ROS 1 POSE topic: {ros1_pose_topic}')
         self.get_logger().info(f'Subscribed to ROS 1 WRENCH topic: {ros1_wrench_topic}')
+        self.get_logger().info(f'Subscribed to ROS 1 STATES topic: {ros1_states_topic}')
+        
 
         # Define static camera-to-robot transform (calibration)
         self.T_cam_to_robot = np.linalg.inv(
@@ -57,50 +68,50 @@ class Ros1ToRos2PoseBridge(Node):
         T[:3, 3] = pos
         return T
 
-    def ros1_pose_callback(self, msg):
-        """Callback to receive ROS 1 pose and publish transformed pose to ROS 2."""
+    # def ros1_pose_callback(self, msg):
+    #     """Callback to receive ROS 1 pose and publish transformed pose to ROS 2."""
 
-        # Extract pose from ROS 1 message
-        pos = np.array([
-            msg['pose']['position']['x'],
-            msg['pose']['position']['y'],
-            msg['pose']['position']['z']
-        ])
-        quat = np.array([
-            msg['pose']['orientation']['x'],
-            msg['pose']['orientation']['y'],
-            msg['pose']['orientation']['z'],
-            msg['pose']['orientation']['w']
-        ])
+    #     # Extract pose from ROS 1 message
+    #     pos = np.array([
+    #         msg['pose']['position']['x'],
+    #         msg['pose']['position']['y'],
+    #         msg['pose']['position']['z']
+    #     ])
+    #     quat = np.array([
+    #         msg['pose']['orientation']['x'],
+    #         msg['pose']['orientation']['y'],
+    #         msg['pose']['orientation']['z'],
+    #         msg['pose']['orientation']['w']
+    #     ])
 
-        T_pose = self.build_transform(pos, quat)
+    #     T_pose = self.build_transform(pos, quat)
 
-        R_correction = R.from_euler('z', -90, degrees=True)
-        T_correction = self.build_transform(pos=[0, 0, -0.522], quat=R_correction.as_quat(scalar_first=False))
+    #     R_correction = R.from_euler('z', -90, degrees=True)
+    #     T_correction = self.build_transform(pos=[0, 0, -0.522], quat=R_correction.as_quat(scalar_first=False))
 
-        # Transform to robot frame
-        T_transformed = T_correction @ self.T_cam_to_robot @ T_pose
+    #     # Transform to robot frame
+    #     T_transformed = T_correction @ self.T_cam_to_robot @ T_pose
 
-        transformed_pos = T_transformed[:3, 3]
-        transformed_quat = R.from_matrix(T_transformed[:3, :3]).as_quat()  # x, y, z, w
+    #     transformed_pos = T_transformed[:3, 3]
+    #     transformed_quat = R.from_matrix(T_transformed[:3, :3]).as_quat()  # x, y, z, w
 
-        # Build ROS 2 PoseStamped message
-        pose_msg = PoseStamped()
-        pose_msg.header.frame_id = 'panda_link0'  # frame of reference
-        pose_msg.header.stamp.sec = msg['header']['stamp']['secs']
-        pose_msg.header.stamp.nanosec = msg['header']['stamp']['nsecs']
+    #     # Build ROS 2 PoseStamped message
+    #     pose_msg = PoseStamped()
+    #     pose_msg.header.frame_id = 'panda_link0'  # frame of reference
+    #     pose_msg.header.stamp.sec = msg['header']['stamp']['secs']
+    #     pose_msg.header.stamp.nanosec = msg['header']['stamp']['nsecs']
 
-        pose_msg.pose.position.x = float(transformed_pos[0])
-        pose_msg.pose.position.y = float(transformed_pos[1])
-        pose_msg.pose.position.z = float(transformed_pos[2])
+    #     pose_msg.pose.position.x = float(transformed_pos[0])
+    #     pose_msg.pose.position.y = float(transformed_pos[1])
+    #     pose_msg.pose.position.z = float(transformed_pos[2])
 
-        pose_msg.pose.orientation.x = float(transformed_quat[0])
-        pose_msg.pose.orientation.y = float(transformed_quat[1])
-        pose_msg.pose.orientation.z = float(transformed_quat[2])
-        pose_msg.pose.orientation.w = float(transformed_quat[3])
+    #     pose_msg.pose.orientation.x = float(transformed_quat[0])
+    #     pose_msg.pose.orientation.y = float(transformed_quat[1])
+    #     pose_msg.pose.orientation.z = float(transformed_quat[2])
+    #     pose_msg.pose.orientation.w = float(transformed_quat[3])
 
-        self.publisher_.publish(pose_msg)
-        self.get_logger().debug('Published transformed PoseStamped to ROS 2.')
+    #     self.publisher_.publish(pose_msg)
+    #     self.get_logger().debug('Published transformed PoseStamped to ROS 2.')
 
     def ros1_wrench_callback(self, msg):
         ros2_msg = WrenchStamped()
@@ -120,12 +131,69 @@ class Ros1ToRos2PoseBridge(Node):
 
         self.wrench_publisher_.publish(ros2_msg)
 
+
+    def ros1_states_callback(self, msg):
+        ros2_msg = JointState()
+
+        # Set the timestamp
+        ros2_msg.header.stamp.sec = msg['header']['stamp']['secs']
+        ros2_msg.header.stamp.nanosec = msg['header']['stamp']['nsecs']
+
+        # Set the frame_id (if present in ROS 1 message)
+        ros2_msg.header.frame_id = msg['header'].get('frame_id', '')
+
+        # Names of the joints
+        ros2_msg.name = msg['name']
+        # ros2_msg.name = [
+        #     'panda_joint1_01',
+        #     'follower_joint2',
+        #     'follower_joint3',
+        #     'follower_joint4',
+        #     'follower_joint5',
+        #     'follower_joint6',
+        #     'follower_joint7',
+        #     'follower_finger_joint1',
+        #     'follower_finger_joint2'
+        # ]
+
+
+        # Joint positions
+        ros2_msg.position = msg['position']
+
+        # Joint velocities
+        ros2_msg.velocity = msg.get('velocity', [])
+
+        # Joint efforts
+        ros2_msg.effort = msg.get('effort', [])
+
+        # Publish to ROS 2
+        self.states_publisher.publish(ros2_msg)
+
+    def ros1_states_callback_2(self, msg):
+        ros2_msg = JointState()
+
+        ros2_msg.header.stamp.sec = msg['header']['stamp']['secs']
+        ros2_msg.header.stamp.nanosec = msg['header']['stamp']['nsecs']
+        ros2_msg.header.frame_id = msg['header'].get('frame_id', '')
+
+        # Only select follower joints
+        follower_indices = [i for i, n in enumerate(msg['name']) if n.startswith('follower_')]
+        ros2_msg.name = [msg['name'][i] for i in follower_indices]
+        ros2_msg.position = [msg['position'][i] for i in follower_indices]
+        ros2_msg.velocity = [msg.get('velocity', [0]*len(msg['name']))[i] for i in follower_indices]
+        ros2_msg.effort = [msg.get('effort', [0]*len(msg['name']))[i] for i in follower_indices]
+
+        self.states_publisher.publish(ros2_msg)        
+
     
     def destroy_node(self):
         self.get_logger().info('Shutting down bridge...')
-        self.ros1_listener.unsubscribe()
+        self.ros1_wrench_listener.unsubscribe()
+        self.ros1_states_listener.unsubscribe()
+        # self.ros1_pose_listener.unsubscribe()
         self.ros1.terminate()
         super().destroy_node()
+
 
 
 def main():
