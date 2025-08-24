@@ -65,7 +65,8 @@ class HelloWorld(BaseSample):
         world.scene.add_default_ground_plane()
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.026])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0])))
-        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0162])))
+        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.01158])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0162])))
         #cube = world.scene.add(DynamicCuboid(prim_path= "/World/Cube", name= "fancy_cube", position=np.array([0.0, 0.6, 0.0]), scale= np.array([0.4, 0.4, 0.4]) ))
         print("adding L object")
         L_obj_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/L_object.usd"
@@ -169,7 +170,10 @@ class HelloWorld(BaseSample):
         franka = world.scene.get_object("fancy_franka")
         articulation_view = franka._articulation_view
         sensor_joint_forces = franka.get_measured_joint_forces()
-        print(f"Sensor joint forces: {sensor_joint_forces}")
+        for i, f in enumerate(sensor_joint_forces):
+            formatted = [f"{float(x):.6f}" for x in f]   # format each element
+            print(f"Joint {i}: {formatted}")
+        #print(f"Sensor joint forces: {sensor_joint_forces}")
         joint_link_id = {}
 
         for prim in self.stage.Traverse():
@@ -207,6 +211,8 @@ class HelloWorld(BaseSample):
             #print("inside if statement 1")
             force_torque_sensor_to_hand = sensor_joint_forces[8]
             force_torque_link7_to_sensor = sensor_joint_forces[7]
+            print(f"sensor to hand {force_torque_sensor_to_hand}")
+            print(f"link7 to sensor {force_torque_link7_to_sensor}")
             # force_torque_sensor_to_hand = sensor_joint_forces[9]
             # force_torque_link7_to_sensor = sensor_joint_forces[8]
 
@@ -232,12 +238,12 @@ class HelloWorld(BaseSample):
             msg_link7_to_sensor.header = Header()
             msg_link7_to_sensor.header.stamp = self.ros_node.get_clock().now().to_msg()
             #print("inside if statement 2")
-            msg_link7_to_sensor.wrench.force.x = float(force_torque_sensor_to_hand[0])
-            msg_link7_to_sensor.wrench.force.y = float(force_torque_sensor_to_hand[1])
-            msg_link7_to_sensor.wrench.force.z = float(force_torque_sensor_to_hand[2])
-            msg_link7_to_sensor.wrench.torque.x = float(force_torque_sensor_to_hand[3])
-            msg_link7_to_sensor.wrench.torque.y = float(force_torque_sensor_to_hand[4])
-            msg_link7_to_sensor.wrench.torque.z = float(force_torque_sensor_to_hand[5])
+            msg_link7_to_sensor.wrench.force.x = float(force_torque_link7_to_sensor[0])
+            msg_link7_to_sensor.wrench.force.y = float(force_torque_link7_to_sensor[1])
+            msg_link7_to_sensor.wrench.force.z = float(force_torque_link7_to_sensor[2])
+            msg_link7_to_sensor.wrench.torque.x = float(force_torque_link7_to_sensor[3])
+            msg_link7_to_sensor.wrench.torque.y = float(force_torque_link7_to_sensor[4])
+            msg_link7_to_sensor.wrench.torque.z = float(force_torque_link7_to_sensor[5])
 
 
             '''
@@ -336,8 +342,8 @@ class HelloWorld(BaseSample):
                     # ("ArticulationController.inputs:usePath", True),      # if you are using an older version of Isaac Sim, you may need to uncomment this line
                     ("ArticulationController.inputs:robotPath", "/World/Fancy_Franka"),
                     ("PublishJointState.inputs:targetPrim", "/World/Fancy_Franka"),
-                    ("SubscribeJointState.inputs:topicName", "/panda_teleop/joint_states_real"),
-                    #("SubscribeJointState.inputs:topicName", "/joint_command"),
+                    #("SubscribeJointState.inputs:topicName", "/panda_teleop/joint_states_real"),
+                    ("SubscribeJointState.inputs:topicName", "/joint_command"),
                 ],
             },
         )
