@@ -11,6 +11,9 @@ import numpy as np
 ##from omni.isaac.sensor.scripts.effort_sensor import EffortSensor
 #import omni.graph.core as og
 
+from omni.isaac.core.utils import rotations, prims
+from pxr import Gf
+
 import rclpy
 from isaacsim.examples.interactive.base_sample import BaseSample
 from rclpy.node import Node
@@ -63,16 +66,19 @@ class HelloWorld(BaseSample):
         print("hello1")
         world = self.get_world()
         world.scene.add_default_ground_plane()
+        #world.scene.add_default_light()
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.026])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0])))
-        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.01158])))
+        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.002])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.01158])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.00437])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.00253])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0162])))
         #cube = world.scene.add(DynamicCuboid(prim_path= "/World/Cube", name= "fancy_cube", position=np.array([0.0, 0.6, 0.0]), scale= np.array([0.4, 0.4, 0.4]) ))
-        print("adding L object")
-        L_obj_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/L_object.usd"
-        L_obj_prim_path = "/World/L_Object"
-        add_reference_to_stage(L_obj_usd_path, L_obj_prim_path)
-        print("added L object")
+       
+        # L_obj_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/L_object.usd"
+        # L_obj_prim_path = "/World/L_Object"
+        # add_reference_to_stage(L_obj_usd_path, L_obj_prim_path)
         
         #self.camera_floating = Camera(prim_path="/World/floating_camera",
         #    position=np.array([0.6267249122010365, -1.0899894150435772, 0.81929329203460317634038678793]),
@@ -80,14 +86,27 @@ class HelloWorld(BaseSample):
         #    orientation=[-0.49814925, -0.06765672, -0.11633789, 0.85658356], #rot_utils.euler_angles_to_quats(np.array([58.06897, 0, -70306]),degrees=True),
         #)
         #self.camera_floating_prim = stage.GetPrimAtPath("/World/Fancy_Franka/floating_camera")
+
         self.camera_floating = Camera(prim_path="/World/Fancy_Franka/floating_camera",
                                         name='floating_camera')
-        self.camera_wrist = Camera(prim_path="/World/Fancy_Franka/wrist_camera",
-                                        name='wrist_camera')
+
+        depth_array = self.camera_floating.get_depth()
+        print(f"depth = {depth_array}")
+        # depth_array = np.clip(depth_array, 0.1, 1.0)
+        # depth_array = (depth_array - 0.1) / (1.0 - 0.1) * 255
+
+        # self.camera_wrist = Camera(prim_path="/World/Fancy_Franka/wrist_camera",
+        #                                 #position=np.array([0.58005, 0.01365, 0.16049]),
+        #                                 #orientation=[0.47206, -0.30895, 0.16742, -0.80851],
+        #                                 name='wrist_camera')
+        self.camera_wrist = Camera(prim_path="/World/Fancy_Franka/panda_hand/wrist_camera",
+                                        #position=np.array([0.58005, 0.01365, 0.16049]),
+                                        #orientation=[0.47206, -0.30895, 0.16742, -0.80851],
+                                        name='wrist_camera')                                      
+
 
         self.camera_floating.initialize()
         self.camera_wrist.initialize()
-        print("hello 2")
 
         """
         in: pose
@@ -101,32 +120,32 @@ class HelloWorld(BaseSample):
         #self._create_action_graph_obj()
 
         self.stage = omni.usd.get_context().get_stage()
-        print("hello3")
 
         self.left_finger_prim = self.stage.GetPrimAtPath("/World/Fancy_Franka/panda_leftfinger")
         self.right_finger_prim = self.stage.GetPrimAtPath("/World/Fancy_Franka/panda_rightfinger")
 
-        L_obj = self.stage.GetPrimAtPath("/World/L_Object")
-        # L_obj_scale = L_obj.GetAttribute('xformOp:scale')
-        # L_obj_scale.Set((100.0, 100.0, 100.0))
-
+        # L_obj_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/L_object.usd"
+        # L_obj_prim_path = "/World/L_Object"
+        # add_reference_to_stage(L_obj_usd_path, L_obj_prim_path)
+        # L_obj = self.stage.GetPrimAtPath("/World/L_Object")
         # L_obj_xform = UsdGeom.Xformable(L_obj)
-        # L_obj_xform.AddTranslateOp().Set((0.35, 0.1, 0.0))
-        # L_obj_xform.AddScaleOp().Set((0.25, 0.25, 0.25))
+        # L_obj_xform.AddTranslateOp().Set((0.39365, -0.07614, -0.00002))
+        # #L_obj_xform.AddTranslateOp().Set((0.39418, -0.07999, 0))
+        # L_obj_xform.AddScaleOp().Set((0.1, 0.1, 0.1))
+        # L_obj_xform.AddRotateXOp().Set(-0.11)   
+        # L_obj_xform.AddRotateYOp().Set(-0.011)  
+        # L_obj_xform.AddRotateZOp().Set(90.0)   
+        # L_obj_mass_api = UsdPhysics.MassAPI.Apply(L_obj)
+        # L_obj_mass_api.CreateMassAttr(0.341)
+       
+        # UsdPhysics.RigidBodyAPI.Apply(L_obj)
+        # UsdPhysics.CollisionAPI.Apply(L_obj)
+        # collision_api = UsdPhysics.CollisionAPI.Apply(L_obj)
+        # collision_api.CreateApproximationAttr("convexHull")
 
-        L_obj_xform = UsdGeom.Xformable(L_obj)
-        L_obj_xform.AddTranslateOp().Set((0.39365, -0.07614, -0.00002))
-        #L_obj_xform.AddTranslateOp().Set((0.39418, -0.07999, 0))
-        L_obj_xform.AddScaleOp().Set((0.1, 0.1, 0.1))
-        L_obj_xform.AddRotateXOp().Set(-0.11)   
-        L_obj_xform.AddRotateYOp().Set(-0.011)  
-        L_obj_xform.AddRotateZOp().Set(90.0)   
+        #self._add_gearboxtool_object()
+        self._add_L_object()
 
-        print("hello4")
-
-        L_obj_mass_api = UsdPhysics.MassAPI.Apply(L_obj)
-        L_obj_mass_api.CreateMassAttr(0.341)
-        print("hello5")
         return
 
     async def setup_post_load(self):
@@ -208,15 +227,14 @@ class HelloWorld(BaseSample):
 
         # Publishing force and torque at joint 4 (example: end effector)
         if len(sensor_joint_forces) >= 4:
-            #print("inside if statement 1")
-            force_torque_sensor_to_hand = sensor_joint_forces[8]
-            force_torque_link7_to_sensor = sensor_joint_forces[7]
+
+            force_torque_sensor_to_hand = sensor_joint_forces[idx_fixed_joint + 1]
+            force_torque_link7_to_sensor = sensor_joint_forces[idx_sensor_joint + 1]
             print(f"sensor to hand {force_torque_sensor_to_hand}")
             print(f"link7 to sensor {force_torque_link7_to_sensor}")
             # force_torque_sensor_to_hand = sensor_joint_forces[9]
             # force_torque_link7_to_sensor = sensor_joint_forces[8]
 
-            #print(f"force torque = {force_torque}")
             #msg = self.ros_node.wrench_stamped_msg
 
             msg_sensor_to_hand = WrenchStamped()
@@ -224,16 +242,15 @@ class HelloWorld(BaseSample):
 
             msg_sensor_to_hand.header = Header()
             msg_sensor_to_hand.header.stamp = self.ros_node.get_clock().now().to_msg()
-            #print("inside if statement 2")
+            msg_sensor_to_hand.header.frame_id = "ft_sensor0_wrench"
+
             msg_sensor_to_hand.wrench.force.x = float(force_torque_sensor_to_hand[0])
             msg_sensor_to_hand.wrench.force.y = float(force_torque_sensor_to_hand[1])
             msg_sensor_to_hand.wrench.force.z = float(force_torque_sensor_to_hand[2])
             msg_sensor_to_hand.wrench.torque.x = float(force_torque_sensor_to_hand[3])
             msg_sensor_to_hand.wrench.torque.y = float(force_torque_sensor_to_hand[4])
             msg_sensor_to_hand.wrench.torque.z = float(force_torque_sensor_to_hand[5])
-            #print(f"Message is: {msg}")
-            #print(f"Message: {msg.wrench}")
-            #print("inside if statement 3")
+
 
             msg_link7_to_sensor.header = Header()
             msg_link7_to_sensor.header.stamp = self.ros_node.get_clock().now().to_msg()
@@ -244,7 +261,6 @@ class HelloWorld(BaseSample):
             msg_link7_to_sensor.wrench.torque.x = float(force_torque_link7_to_sensor[3])
             msg_link7_to_sensor.wrench.torque.y = float(force_torque_link7_to_sensor[4])
             msg_link7_to_sensor.wrench.torque.z = float(force_torque_link7_to_sensor[5])
-
 
             '''
             msg.wrench.force.x = force_torque[0]
@@ -342,8 +358,8 @@ class HelloWorld(BaseSample):
                     # ("ArticulationController.inputs:usePath", True),      # if you are using an older version of Isaac Sim, you may need to uncomment this line
                     ("ArticulationController.inputs:robotPath", "/World/Fancy_Franka"),
                     ("PublishJointState.inputs:targetPrim", "/World/Fancy_Franka"),
-                    #("SubscribeJointState.inputs:topicName", "/panda_teleop/joint_states_real"),
-                    ("SubscribeJointState.inputs:topicName", "/joint_command"),
+                    ("SubscribeJointState.inputs:topicName", "/panda_teleop/joint_states_real"),
+                    #("SubscribeJointState.inputs:topicName", "/joint_command"),
                 ],
             },
         )
@@ -388,6 +404,61 @@ class HelloWorld(BaseSample):
         )
 
         print("nodes created and values set")
+
+    def _add_L_object(self):
+        L_obj_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/L_object.usd"
+        L_obj_prim_path = "/World/L_Object"
+        add_reference_to_stage(L_obj_usd_path, L_obj_prim_path)
+
+        L_obj = self.stage.GetPrimAtPath("/World/L_Object")
+        # L_obj_scale = L_obj.GetAttribute('xformOp:scale')
+        # L_obj_scale.Set((100.0, 100.0, 100.0))
+
+        # L_obj_xform = UsdGeom.Xformable(L_obj)
+        # L_obj_xform.AddTranslateOp().Set((0.35, 0.1, 0.0))
+        # L_obj_xform.AddScaleOp().Set((0.25, 0.25, 0.25))
+
+        L_obj_xform = UsdGeom.Xformable(L_obj)
+        L_obj_xform.AddTranslateOp().Set((0.39365, -0.07614, 0.0001))
+        #L_obj_xform.AddTranslateOp().Set((0.39418, -0.07999, 0))
+        L_obj_xform.AddScaleOp().Set((0.1, 0.1, 0.1))
+        # L_obj_xform.AddRotateXOp().Set(-0.11)   
+        # L_obj_xform.AddRotateYOp().Set(-0.011) 
+        L_obj_xform.AddRotateXOp().Set(0)   
+        L_obj_xform.AddRotateYOp().Set(0)  
+        L_obj_xform.AddRotateZOp().Set(90.0)   
+
+        L_obj_mass_api = UsdPhysics.MassAPI.Apply(L_obj)
+        L_obj_mass_api.CreateMassAttr(0.341)
+        return
+
+    def _add_gearboxtool_object(self):
+        gearbox_usd_path = "/home/digitaltwin/software/isaacsim/my_assets/1000-d072556b01000_Getriebegehaeuse_NPL_m060.usd"
+        gearbox_prim_path = "/World/Gearbox_object"
+        add_reference_to_stage(gearbox_usd_path, gearbox_prim_path)
+
+        gearbox_obj = self.stage.GetPrimAtPath("/World/Gearbox_object")
+        gearbox_obj_xform = UsdGeom.Xformable(gearbox_obj)
+
+        ops = gearbox_obj_xform.GetOrderedXformOps()
+        translate_ops = [op for op in ops if op.GetOpName() == "xformOp:translate"]
+
+        print(f"translate_ops = {translate_ops}")
+
+        if translate_ops:
+            translate_ops[0].Set((0.1, 0.1, 0.03678))
+        else:
+            gearbox_obj_xform.AddTranslateOp().Set((0.1, 0.1, 0.03678))
+
+        gearbox_obj_xform.AddRotateXOp().Set(-89.745)
+        gearbox_obj_xform.AddRotateYOp().Set(-80.346)
+        gearbox_obj_xform.AddRotateZOp().Set(-89.764)
+
+        gearbox_obj_mass_api = UsdPhysics.MassAPI.Apply(gearbox_obj)
+        gearbox_obj_mass_api.CreateMassAttr(5)
+
+        #gearbox_obj_xform.AddTranslateOp().Set((0.1, 0.1, 0.1))        
+        return
 
     def world_cleanup(self):
         #print("5. inside clean world")
