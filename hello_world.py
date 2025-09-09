@@ -69,7 +69,9 @@ class HelloWorld(BaseSample):
         #world.scene.add_default_light()
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.026])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0])))
-        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.002])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.002])))
+        #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.0056])))
+        franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.024080])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.01158])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.00437])))
         #franka = world.scene.add(Franka(prim_path="/World/Fancy_Franka", name="fancy_franka", position=np.array([0.0, 0.0, 0.00253])))
@@ -143,8 +145,8 @@ class HelloWorld(BaseSample):
         # collision_api = UsdPhysics.CollisionAPI.Apply(L_obj)
         # collision_api.CreateApproximationAttr("convexHull")
 
-        #self._add_gearboxtool_object()
-        self._add_L_object()
+        self._add_gearboxtool_object()
+        #self._add_L_object()
 
         return
 
@@ -218,10 +220,14 @@ class HelloWorld(BaseSample):
 
         # Find the array indices for the two joints you want
         idx_sensor_joint = joint_names.index("link7_to_sensor")  # between link 7 & sensor
-        idx_fixed_joint  = joint_names.index("sensor_to_hand")  
+        idx_fixed_joint  = joint_names.index("sensor_to_hand")
+        idx_finger_joint1 = joint_names.index("panda_finger_joint1")  # between link 7 & sensor
+        idx_finger_joint2  = joint_names.index("panda_finger_joint2")  
 
         print(f"index for joint link7 and sensor {idx_sensor_joint}")
         print(f"index for sensor and hand {idx_fixed_joint}")
+        print(f"index for finger joint 1 {idx_finger_joint1}")
+        print(f"index for finger joint 2 {idx_finger_joint2}")
 
         ####################################### publishing EFFORT / FORCE #######################################
 
@@ -230,8 +236,14 @@ class HelloWorld(BaseSample):
 
             force_torque_sensor_to_hand = sensor_joint_forces[idx_fixed_joint + 1]
             force_torque_link7_to_sensor = sensor_joint_forces[idx_sensor_joint + 1]
+            force_finger_joint1 = sensor_joint_forces[idx_finger_joint1 + 1]
+            force_finger_joint2 = sensor_joint_forces[idx_finger_joint2 + 1]
+
             print(f"sensor to hand {force_torque_sensor_to_hand}")
             print(f"link7 to sensor {force_torque_link7_to_sensor}")
+            print(f"finger joint 1 {force_finger_joint1}")
+            print(f"finger joint 2 {force_finger_joint2}")
+
             # force_torque_sensor_to_hand = sensor_joint_forces[9]
             # force_torque_link7_to_sensor = sensor_joint_forces[8]
 
@@ -239,28 +251,42 @@ class HelloWorld(BaseSample):
 
             msg_sensor_to_hand = WrenchStamped()
             msg_link7_to_sensor = WrenchStamped()
+            
 
             msg_sensor_to_hand.header = Header()
             msg_sensor_to_hand.header.stamp = self.ros_node.get_clock().now().to_msg()
             msg_sensor_to_hand.header.frame_id = "ft_sensor0_wrench"
 
-            msg_sensor_to_hand.wrench.force.x = float(force_torque_sensor_to_hand[0])
-            msg_sensor_to_hand.wrench.force.y = float(force_torque_sensor_to_hand[1])
-            msg_sensor_to_hand.wrench.force.z = float(force_torque_sensor_to_hand[2])
-            msg_sensor_to_hand.wrench.torque.x = float(force_torque_sensor_to_hand[3])
-            msg_sensor_to_hand.wrench.torque.y = float(force_torque_sensor_to_hand[4])
-            msg_sensor_to_hand.wrench.torque.z = float(force_torque_sensor_to_hand[5])
+            # msg_sensor_to_hand.wrench.force.x = float(force_torque_sensor_to_hand[0])
+            # msg_sensor_to_hand.wrench.force.y = float(force_torque_sensor_to_hand[1])
+            # msg_sensor_to_hand.wrench.force.z = float(force_torque_sensor_to_hand[2])
+            # msg_sensor_to_hand.wrench.torque.x = float(force_torque_sensor_to_hand[3])
+            # msg_sensor_to_hand.wrench.torque.y = float(force_torque_sensor_to_hand[4])
+            # msg_sensor_to_hand.wrench.torque.z = float(force_torque_sensor_to_hand[5])
+            msg_sensor_to_hand.wrench.force.x = float(force_finger_joint1[0])
+            msg_sensor_to_hand.wrench.force.y = float(force_finger_joint1[1])
+            msg_sensor_to_hand.wrench.force.z = float(force_finger_joint1[2])
+            msg_sensor_to_hand.wrench.torque.x = float(force_finger_joint1[3])
+            msg_sensor_to_hand.wrench.torque.y = float(force_finger_joint1[4])
+            msg_sensor_to_hand.wrench.torque.z = float(force_finger_joint1[5])
+            
 
 
             msg_link7_to_sensor.header = Header()
             msg_link7_to_sensor.header.stamp = self.ros_node.get_clock().now().to_msg()
             #print("inside if statement 2")
-            msg_link7_to_sensor.wrench.force.x = float(force_torque_link7_to_sensor[0])
-            msg_link7_to_sensor.wrench.force.y = float(force_torque_link7_to_sensor[1])
-            msg_link7_to_sensor.wrench.force.z = float(force_torque_link7_to_sensor[2])
-            msg_link7_to_sensor.wrench.torque.x = float(force_torque_link7_to_sensor[3])
-            msg_link7_to_sensor.wrench.torque.y = float(force_torque_link7_to_sensor[4])
-            msg_link7_to_sensor.wrench.torque.z = float(force_torque_link7_to_sensor[5])
+            # msg_link7_to_sensor.wrench.force.x = float(force_torque_link7_to_sensor[0])
+            # msg_link7_to_sensor.wrench.force.y = float(force_torque_link7_to_sensor[1])
+            # msg_link7_to_sensor.wrench.force.z = float(force_torque_link7_to_sensor[2])
+            # msg_link7_to_sensor.wrench.torque.x = float(force_torque_link7_to_sensor[3])
+            # msg_link7_to_sensor.wrench.torque.y = float(force_torque_link7_to_sensor[4])
+            # msg_link7_to_sensor.wrench.torque.z = float(force_torque_link7_to_sensor[5])
+            msg_link7_to_sensor.wrench.force.x = float(force_finger_joint2[0])
+            msg_link7_to_sensor.wrench.force.y = float(force_finger_joint2[1])
+            msg_link7_to_sensor.wrench.force.z = float(force_finger_joint2[2])
+            msg_link7_to_sensor.wrench.torque.x = float(force_finger_joint2[3])
+            msg_link7_to_sensor.wrench.torque.y = float(force_finger_joint2[4])
+            msg_link7_to_sensor.wrench.torque.z = float(force_finger_joint2[5])
 
             '''
             msg.wrench.force.x = force_torque[0]
@@ -440,22 +466,32 @@ class HelloWorld(BaseSample):
         gearbox_obj = self.stage.GetPrimAtPath("/World/Gearbox_object")
         gearbox_obj_xform = UsdGeom.Xformable(gearbox_obj)
 
+        UsdPhysics.RigidBodyAPI.Apply(gearbox_obj)
+        UsdPhysics.CollisionAPI.Apply(gearbox_obj)
+        collision_api = UsdPhysics.CollisionAPI.Apply(gearbox_obj)
+        #collision_api.CreateApproximationAttr("convexHull")
+
         ops = gearbox_obj_xform.GetOrderedXformOps()
         translate_ops = [op for op in ops if op.GetOpName() == "xformOp:translate"]
 
         print(f"translate_ops = {translate_ops}")
 
         if translate_ops:
-            translate_ops[0].Set((0.1, 0.1, 0.03678))
+            #translate_ops[0].Set((0.1, 0.1, 0.03678))
+            #translate_ops[0].Set((0.39365, -0.07614, 0.03678))
+            translate_ops[0].Set((0.39555, 0.01878, 0.04625))
+            translate_ops[0].Set((0.4032, -0.01335, 0.04625))
+            translate_ops[0].Set((0.4032, 0.00019, 0.04625))
         else:
-            gearbox_obj_xform.AddTranslateOp().Set((0.1, 0.1, 0.03678))
+            gearbox_obj_xform.AddTranslateOp().Set((0.39365, -0.07614, 0.03678))
 
         gearbox_obj_xform.AddRotateXOp().Set(-89.745)
         gearbox_obj_xform.AddRotateYOp().Set(-80.346)
-        gearbox_obj_xform.AddRotateZOp().Set(-89.764)
+        #gearbox_obj_xform.AddRotateZOp().Set(-89.764)
+        gearbox_obj_xform.AddRotateZOp().Set(90)
 
         gearbox_obj_mass_api = UsdPhysics.MassAPI.Apply(gearbox_obj)
-        gearbox_obj_mass_api.CreateMassAttr(5)
+        gearbox_obj_mass_api.CreateMassAttr(1.593)
 
         #gearbox_obj_xform.AddTranslateOp().Set((0.1, 0.1, 0.1))        
         return

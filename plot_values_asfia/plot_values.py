@@ -9,8 +9,8 @@ from geometry_msgs.msg import WrenchStamped
 
 
 #mcap_file = "/home/digitaltwin/IsaacSim-ros_workspaces/jazzy_ws/ros2bags_LObject/test1/test1_0.mcap"
-mcap_file = "/jazzy_ws/ros2bags_LObject_2/LObject_2_Case1/test13/test13_0.mcap"
-#mcap_file = "/jazzy_ws/ros2bags/test11/test11_0.mcap"
+#mcap_file = "/jazzy_ws/ros2bags_LObject_2/LObject_2_Case1/test13/test13_0.mcap"
+mcap_file = "/jazzy_ws/ros2bags/test23/test23_0.mcap"
 print("hello")
 topics = [
     "/franka_effort_real",
