@@ -9,41 +9,102 @@ from geometry_msgs.msg import WrenchStamped
 
 
 #mcap_file = "/home/digitaltwin/IsaacSim-ros_workspaces/jazzy_ws/ros2bags_LObject/test1/test1_0.mcap"
-#mcap_file = "/jazzy_ws/ros2bags_LObject_2/LObject_2_Case1/test13/test13_0.mcap"
-mcap_file = "/jazzy_ws/ros2bags/test23/test23_0.mcap"
-print("hello")
+#mcap_file = "/jazzy_ws/ros2bags_LObject_4/LObject_4_Case6/test35/test35_0.mcap"
+#mcap_files = ["/jazzy_ws/test26/test26_0.mcap"]
+mcap_files = ["/jazzy_ws/ros2bags_gearbox_1/gearbox_1_Case5/test25/test25_0.mcap",
+            #"/jazzy_ws/ros2bags_gearbox_1/gearbox_1_Case2/test9/test9_0.mcap",
+            #"/jazzy_ws/ros2bags_gearbox_1/gearbox_1_Case2/test10/test10_0.mcap"
+]
+
 topics = [
     "/franka_effort_real",
     "/franka_effort_sensor_to_hand",
     "/franka_effort_link7_to_sensor"
 ]
 
+# check_time = {
+#     mcap_file: {"mask": [], "start_time": [], "end_time": []}
+#     for mcap_file in mcap_files
+# }
+
+# data_0 = {
+#     topic: {"time": [] }
+#     for topic in topics
+# }
+  
 data = {
     topic: {"time": [], "force": [], "torque": []}
     for topic in topics
 }
 
-with open(mcap_file, "rb") as f:
-    reader = make_reader(f)
-    for schema, channel, message in reader.iter_messages(topics=topics):
-        t = message.log_time / 1e9  # ns to s
-        msg = deserialize_message(message.data, WrenchStamped)
+# for mcap_file in mcap_files:
+#     times = []
+#     with open(mcap_file, "rb") as f:
+#         reader = make_reader(f)
+#         for schema, channel, message in reader.iter_messages(topics=topics):
+#             t = message.log_time / 1e9  # ns to s    
+#             times.append(t)
 
-        f_mag = np.sqrt(
-            msg.wrench.force.x**2 +
-            msg.wrench.force.y**2 +
-            msg.wrench.force.z**2
-        )
+#     times = np.array(times)
+#     check_time[mcap_file]["start_time"] = times[0] + 5.0
+#     check_time[mcap_file]["end_time"] = times[-1] - 5.0
+#     print(f"start time for ros2bag {mcap_file} = {check_time[mcap_file]["start_time"]}")
+#     print(f"end time for ros2bag {mcap_file} = {check_time[mcap_file]["end_time"]}")
 
-        tau_mag = np.sqrt(
-            msg.wrench.torque.x**2 +
-            msg.wrench.torque.y**2 +
-            msg.wrench.torque.z**2
-        )
 
-        data[channel.topic]["time"].append(t)
-        data[channel.topic]["force"].append(f_mag)
-        data[channel.topic]["torque"].append(tau_mag)
+# for mcap_file in mcap_files:
+#     with open(mcap_file, "rb") as f:
+#         reader = make_reader(f)
+#         for schema, channel, message in reader.iter_messages(topics=topics):
+
+#             t = message.log_time / 1e9  # ns to s
+#             #t = message.log_time # ns to s
+#             print(f"t = {t}")
+#             #print("before if loop")
+#             if (t >= check_time[mcap_file]["start_time"]) & (t <= check_time[mcap_file]["end_time"] ):
+#                 print("inside if loop")
+#                 msg = deserialize_message(message.data, WrenchStamped)
+
+#                 f_mag = np.sqrt(
+#                     msg.wrench.force.x**2 +
+#                     msg.wrench.force.y**2 +
+#                     msg.wrench.force.z**2
+#                 )
+
+#                 tau_mag = np.sqrt(
+#                     msg.wrench.torque.x**2 +
+#                     msg.wrench.torque.y**2 +
+#                     msg.wrench.torque.z**2
+#                 )
+
+#                 data[channel.topic]["time"].append(t)
+#                 data[channel.topic]["force"].append(f_mag)
+#                 data[channel.topic]["torque"].append(tau_mag)
+
+
+for mcap_file in mcap_files:
+    print(f"reading file {mcap_file}")
+    with open(mcap_file, "rb") as f:
+        reader = make_reader(f)
+        for schema, channel, message in reader.iter_messages(topics=topics):
+            t = message.log_time / 1e9  # ns to s
+            msg = deserialize_message(message.data, WrenchStamped)
+
+            f_mag = np.sqrt(
+                msg.wrench.force.x**2 +
+                msg.wrench.force.y**2 +
+                msg.wrench.force.z**2
+            )
+
+            tau_mag = np.sqrt(
+                msg.wrench.torque.x**2 +
+                msg.wrench.torque.y**2 +
+                msg.wrench.torque.z**2
+            )
+
+            data[channel.topic]["time"].append(t)
+            data[channel.topic]["force"].append(f_mag)
+            data[channel.topic]["torque"].append(tau_mag)
 
 
 
