@@ -21,66 +21,17 @@ topics = [
     "/franka_effort_sensor_to_hand",
     "/franka_effort_link7_to_sensor"
 ]
-
-# check_time = {
-#     mcap_file: {"mask": [], "start_time": [], "end_time": []}
-#     for mcap_file in mcap_files
-# }
-
-# data_0 = {
-#     topic: {"time": [] }
-#     for topic in topics
-# }
   
 data = {
     topic: {"time": [], "force": [], "torque": []}
     for topic in topics
 }
 
-# for mcap_file in mcap_files:
-#     times = []
-#     with open(mcap_file, "rb") as f:
-#         reader = make_reader(f)
-#         for schema, channel, message in reader.iter_messages(topics=topics):
-#             t = message.log_time / 1e9  # ns to s    
-#             times.append(t)
+# data = {topic: {"time": []} for topic in topics}
 
-#     times = np.array(times)
-#     check_time[mcap_file]["start_time"] = times[0] + 5.0
-#     check_time[mcap_file]["end_time"] = times[-1] - 5.0
-#     print(f"start time for ros2bag {mcap_file} = {check_time[mcap_file]["start_time"]}")
-#     print(f"end time for ros2bag {mcap_file} = {check_time[mcap_file]["end_time"]}")
-
-
-# for mcap_file in mcap_files:
-#     with open(mcap_file, "rb") as f:
-#         reader = make_reader(f)
-#         for schema, channel, message in reader.iter_messages(topics=topics):
-
-#             t = message.log_time / 1e9  # ns to s
-#             #t = message.log_time # ns to s
-#             print(f"t = {t}")
-#             #print("before if loop")
-#             if (t >= check_time[mcap_file]["start_time"]) & (t <= check_time[mcap_file]["end_time"] ):
-#                 print("inside if loop")
-#                 msg = deserialize_message(message.data, WrenchStamped)
-
-#                 f_mag = np.sqrt(
-#                     msg.wrench.force.x**2 +
-#                     msg.wrench.force.y**2 +
-#                     msg.wrench.force.z**2
-#                 )
-
-#                 tau_mag = np.sqrt(
-#                     msg.wrench.torque.x**2 +
-#                     msg.wrench.torque.y**2 +
-#                     msg.wrench.torque.z**2
-#                 )
-
-#                 data[channel.topic]["time"].append(t)
-#                 data[channel.topic]["force"].append(f_mag)
-#                 data[channel.topic]["torque"].append(tau_mag)
-
+# For WrenchStamped topics, also store force/torque
+for topic in ["/franka_effort_real", "/franka_effort_sensor_to_hand", "/franka_effort_link7_to_sensor"]:
+    data[topic].update({"force": [], "torque": []})
 
 for mcap_file in mcap_files:
     print(f"reading file {mcap_file}")
@@ -105,6 +56,49 @@ for mcap_file in mcap_files:
             data[channel.topic]["time"].append(t)
             data[channel.topic]["force"].append(f_mag)
             data[channel.topic]["torque"].append(tau_mag)
+
+# for mcap_file in mcap_files:
+#     print(f"reading file {mcap_file}")
+#     with open(mcap_file, "rb") as f:
+#         reader = make_reader(f)
+#         for schema, channel, message in reader.iter_messages(topics=topics):
+#             t = message.log_time / 1e9
+
+#             if channel.topic in ["/franka_effort_real", "/franka_effort_sensor_to_hand", "/franka_effort_link7_to_sensor"]:
+#                 msg = deserialize_message(message.data, WrenchStamped)
+#                 f_mag = np.sqrt(msg.wrench.force.x**2 + msg.wrench.force.y**2 + msg.wrench.force.z**2)
+#                 tau_mag = np.sqrt(msg.wrench.torque.x**2 + msg.wrench.torque.y**2 + msg.wrench.torque.z**2)
+#                 data[channel.topic]["time"].append(t)
+#                 data[channel.topic]["force"].append(f_mag)
+#                 data[channel.topic]["torque"].append(tau_mag)
+
+#             elif channel.topic == "/franka_ee_pose":
+#                 msg = deserialize_message(message.data, PoseStamped)
+#                 pos = msg.pose.position
+#                 ori = msg.pose.orientation
+#                 data[channel.topic]["time"].append(t)
+#                 data[channel.topic]["pos"] = data[channel.topic].get("pos", []) + [[pos.x, pos.y, pos.z]]
+#                 data[channel.topic]["ori"] = data[channel.topic].get("ori", []) + [[ori.x, ori.y, ori.z, ori.w]]
+
+#             elif channel.topic == "/franka_joint_states":
+#                 msg = deserialize_message(message.data, JointState)
+#                 data[channel.topic]["time"].append(t)
+#                 data[channel.topic]["pos"] = data[channel.topic].get("pos", []) + [msg.position]
+#                 data[channel.topic]["vel"] = data[channel.topic].get("vel", []) + [msg.velocity]
+#                 data[channel.topic]["effort"] = data[channel.topic].get("effort", []) + [msg.effort]
+
+#             elif channel.topic in ["/camera_floating/rgb", "/camera_floating/depth",
+#                                 "/camera_wrist/rgb", "/camera_wrist/depth"]:
+#                 msg = deserialize_message(message.data, Image)
+#                 img_array = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, -1)) if msg.encoding in ["rgb8", "rgba8"] else np.frombuffer(msg.data, dtype=np.float32).reshape((msg.height, msg.width))
+                
+#                 folder = f"images/{channel.topic.replace('/', '_')}"
+#                 os.makedirs(folder, exist_ok=True)
+#                 filename = os.path.join(folder, f"{t:.6f}.png")
+#                 cv2.imwrite(filename, img_array)
+#                 data[channel.topic]["time"].append(t)
+#                 data[channel.topic]["file"] = data[channel.topic].get("file", []) + [filename]
+
 
 
 
